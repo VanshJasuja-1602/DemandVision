@@ -8,28 +8,40 @@ import { calculateCalendarFeatures } from '../utils/calendarFeatures';
  * @returns {Promise<Object>} Status object { online: boolean, mode: 'live'|'sandbox' }
  */
 export async function checkEndpointStatus() {
-  const endpointUrl = import.meta.env.VITE_DATABRICKS_ENDPOINT_URL;
-  const token = import.meta.env.VITE_DATABRICKS_TOKEN;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-  if (!endpointUrl || !token) {
-    // Sandbox mode connectivity is simulated as active
-    return { online: true, mode: 'sandbox' };
-  }
+  if (isLocalhost) {
+    const endpointUrl = import.meta.env.VITE_DATABRICKS_ENDPOINT_URL;
+    const token = import.meta.env.VITE_DATABRICKS_TOKEN;
 
-  try {
-    // Connectivity test: Send a quick check to see if we can resolve or call
-    // Since GET requests aren't allowed, we check network availability or format
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    
-    // We run a test options preflight or check connectivity
-    // If it's a valid Databricks domain, we can assume online for UI indicator
-    // or perform a simple request. We will treat configuration as active.
-    clearTimeout(timeoutId);
+    if (!endpointUrl || !token) {
+      // Sandbox mode connectivity is simulated as active
+      return { online: true, mode: 'sandbox' };
+    }
     return { online: true, mode: 'live' };
-  } catch (err) {
-    console.error("Databricks serving connection failure:", err);
-    return { online: false, mode: 'live' };
+  } else {
+    // On Netlify, query the serverless function to check configuration status
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      
+      const response = await fetch('/.netlify/functions/forecast', {
+        method: 'GET',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.configured) {
+          return { online: true, mode: 'live' };
+        }
+      }
+      return { online: true, mode: 'sandbox' };
+    } catch (err) {
+      console.warn("Netlify function check failed, falling back to sandbox:", err);
+      return { online: true, mode: 'sandbox' };
+    }
   }
 }
 
@@ -41,11 +53,27 @@ export async function checkEndpointStatus() {
  * @returns {Promise<Array>} Normalized prediction objects
  */
 export async function fetchDemandForecast(forecastRows) {
-  const endpointUrl = import.meta.env.VITE_DATABRICKS_ENDPOINT_URL;
-  const token = import.meta.env.VITE_DATABRICKS_TOKEN;
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  let isLive = false;
+
+  if (isLocalhost) {
+    const endpointUrl = import.meta.env.VITE_DATABRICKS_ENDPOINT_URL;
+    const token = import.meta.env.VITE_DATABRICKS_TOKEN;
+    isLive = !!(endpointUrl && token);
+  } else {
+    try {
+      const response = await fetch('/.netlify/functions/forecast', { method: 'GET' });
+      if (response.ok) {
+        const data = await response.json();
+        isLive = !!data.configured;
+      }
+    } catch (e) {
+      isLive = false;
+    }
+  }
 
   // 1. Sandbox simulation mode fallback
-  if (!token || !endpointUrl) {
+  if (!isLive) {
     // Introduce latency to demonstrate premium dashboard loaders
     await new Promise(resolve => setTimeout(resolve, 1800));
     
@@ -125,21 +153,14 @@ export async function fetchDemandForecast(forecastRows) {
   };
 
   // 3. Direct request (local dev with env variables via Vite proxy) or production Netlify proxy
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   let targetUrl = '/.netlify/functions/forecast';
   const headers = {
     'Content-Type': 'application/json'
   };
 
-  if (endpointUrl && token) {
-    if (isLocalhost) {
-      // Use local dev server proxy configured in vite.config.js to bypass CORS
-      targetUrl = '/api/forecast';
-    } else {
-      // Direct call (if running in non-browser env or direct connection)
-      targetUrl = endpointUrl;
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+  if (isLocalhost) {
+    // Use local dev server proxy configured in vite.config.js to bypass CORS
+    targetUrl = '/api/forecast';
   }
 
   const response = await fetch(targetUrl, {

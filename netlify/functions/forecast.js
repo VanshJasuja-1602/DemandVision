@@ -3,11 +3,43 @@
  * Keeps the Databricks Personal Access Token (PAT) hidden from the browser client.
  */
 export async function handler(event) {
-  // Only allow POST requests
+  // Handle CORS preflight (OPTIONS)
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      },
+      body: "",
+    };
+  }
+
+  // Handle configuration status check (GET)
+  if (event.httpMethod === "GET") {
+    const endpointUrl = process.env.DATABRICKS_ENDPOINT_URL;
+    const token = process.env.DATABRICKS_TOKEN;
+    const isConfigured = !!(endpointUrl && token);
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+      body: JSON.stringify({
+        configured: isConfigured,
+        mode: isConfigured ? "live" : "sandbox",
+      }),
+    };
+  }
+
+  // Only allow POST requests for model inference
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: "Method Not Allowed. Use POST." }),
+      body: JSON.stringify({ error: "Method Not Allowed. Use POST or GET/OPTIONS for status." }),
     };
   }
 
