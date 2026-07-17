@@ -33,7 +33,7 @@ export function Footer({ scrollToSection }) {
 
         {/* Bottom row */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 text-xs text-slate-500">
-          <p>© {currentYear} DemandVision. Deployed on Databricks Model Serving. All rights reserved.</p>
+          <p>© {currentYear} DemandVision by <span className="text-yellow-400 font-semibold">Vansh Jasuja</span>. Deployed on Databricks Model Serving. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <span>Privacy Policy</span>
             <span className="h-3 w-px bg-slate-800" />

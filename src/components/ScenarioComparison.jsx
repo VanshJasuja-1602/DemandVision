@@ -77,7 +77,7 @@ export function ScenarioComparison({ baseRows }) {
 
       const discountRows = baseRows.map(r => ({
         ...r,
-        discount: Math.min(100, Number(r.discount) + 15)
+        discount: Math.min(25, Number(r.discount) + 15)
       }));
 
       const priceRows = baseRows.map(r => ({

@@ -170,7 +170,7 @@ export function ForecastForm({
               <input
                 type="range"
                 min="0"
-                max="100"
+                max="25"
                 step="1"
                 value={singleRow.discount}
                 onChange={(e) => handleSingleChange('discount', parseInt(e.target.value, 10))}
@@ -179,9 +179,9 @@ export function ForecastForm({
               <input
                 type="number"
                 min="0"
-                max="100"
+                max="25"
                 value={singleRow.discount}
-                onChange={(e) => handleSingleChange('discount', Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                onChange={(e) => handleSingleChange('discount', Math.min(25, Math.max(0, parseInt(e.target.value, 10) || 0)))}
                 className="w-16 text-center text-sm font-semibold text-slate-800 rounded-xl p-2 bg-slate-100 border border-slate-200"
               />
             </div>
@@ -295,7 +295,7 @@ export function ForecastForm({
             <input
               type="range"
               min="0"
-              max="100"
+              max="25"
               step="1"
               value={multiParams.discount}
               onChange={(e) => handleMultiParamChange('discount', parseInt(e.target.value, 10))}

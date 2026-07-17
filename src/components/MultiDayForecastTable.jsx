@@ -232,9 +232,9 @@ export function MultiDayForecastTable({ rows, setRows }) {
                         <input
                           type="number"
                           min="0"
-                          max="100"
+                          max="25"
                           value={row.discount}
-                          onChange={(e) => handleCellChange(index, 'discount', Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                          onChange={(e) => handleCellChange(index, 'discount', Math.min(25, Math.max(0, parseInt(e.target.value, 10) || 0)))}
                           className="w-full text-xs font-semibold pl-2 pr-5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                         <span className="absolute inset-y-0 right-0 flex items-center pr-2 text-[10px] text-slate-400 font-bold">%</span>

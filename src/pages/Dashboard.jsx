@@ -126,8 +126,8 @@ export function Dashboard() {
       }
       
       const discount = Number(singleRow.discount);
-      if (isNaN(discount) || discount < 0 || discount > 100) {
-        newErrors.discount = "Discount must be between 0 and 100.";
+      if (isNaN(discount) || discount < 0 || discount > 25) {
+        newErrors.discount = "Discount must be between 0 and 25.";
       }
     } else {
       if (!multiParams.startDate) {
@@ -150,8 +150,8 @@ export function Dashboard() {
           newErrors.price = `Row #${idx + 1}: Price must be positive.`;
         }
         const discount = Number(row.discount);
-        if (isNaN(discount) || discount < 0 || discount > 100) {
-          newErrors.discount = `Row #${idx + 1}: Discount must be between 0 and 100.`;
+        if (isNaN(discount) || discount < 0 || discount > 25) {
+          newErrors.discount = `Row #${idx + 1}: Discount must be between 0 and 25.`;
         }
       });
     }
