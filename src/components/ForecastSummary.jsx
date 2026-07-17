@@ -70,9 +70,16 @@ export function ForecastSummary({ data, mode }) {
           <div className="absolute right-0 bottom-0 h-48 w-48 bg-cyan-400 opacity-20 blur-3xl rounded-full" />
           
           <div className="space-y-1">
-            <span className="text-xs uppercase font-bold text-indigo-200 tracking-wider">
-              Databricks SARIMAX prediction
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase font-bold text-indigo-200 tracking-wider">
+                Databricks SARIMAX prediction
+              </span>
+              {data.isCached && (
+                <span className="inline-flex items-center rounded-full bg-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-cyan-200 border border-cyan-400/35">
+                  ⚡ Cached
+                </span>
+              )}
+            </div>
             <h3 className="font-display font-extrabold text-2xl">Predicted Sales Demand</h3>
           </div>
 
@@ -199,6 +206,18 @@ export function ForecastSummary({ data, mode }) {
 
   return (
     <div className="space-y-6">
+      {data.isCached && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between rounded-2xl bg-teal-50 px-4 py-2 border border-teal-200/50 shadow-sm"
+        >
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-teal-700">
+            <Zap className="h-3.5 w-3.5 text-teal-600 animate-pulse" />
+            <span>Forecast results retrieved instantly from memory cache.</span>
+          </div>
+        </motion.div>
+      )}
       {/* Grid of Multi-Day stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
         {kpiCards.map((card, i) => {

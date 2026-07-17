@@ -1,6 +1,20 @@
 import { normalizePredictions } from '../utils/responseNormalizer';
 import { calculateCalendarFeatures } from '../utils/calendarFeatures';
 
+// In-memory cache for forecasting responses
+const forecastCache = new Map();
+
+/**
+ * Computes a unique cache key based on the sorted forecast input rows.
+ * @param {Array} forecastRows - Rows containing { date, price, discount, promotion }
+ * @returns {string} Cache key
+ */
+function getCacheKey(forecastRows) {
+  if (!forecastRows || !Array.isArray(forecastRows)) return '';
+  const sorted = [...forecastRows].sort((a, b) => a.date.localeCompare(b.date));
+  return sorted.map(row => `${row.date}:${row.price}:${row.discount}:${row.promotion}`).join('|');
+}
+
 /**
  * Checks if the Databricks Serving Endpoint (or proxy) is active.
  * For local sandbox evaluation, if no env variables exist, returns online in simulator mode.
@@ -48,11 +62,21 @@ export async function checkEndpointStatus() {
 /**
  * Sends rows to Databricks Model Serving.
  * Falls back to a high-fidelity client-side model simulator if env variables are not present.
+ * Cache is utilized to serve repeat forecasts instantaneously.
  * 
  * @param {Array} forecastRows - Rows containing { date, price, discount, promotion }
  * @returns {Promise<Array>} Normalized prediction objects
  */
 export async function fetchDemandForecast(forecastRows) {
+  // Check the in-memory cache first to avoid repeating calculations or slow API calls
+  const cacheKey = getCacheKey(forecastRows);
+  if (forecastCache.has(cacheKey)) {
+    const cachedResult = JSON.parse(JSON.stringify(forecastCache.get(cacheKey)));
+    // Attach cache hit meta flag
+    cachedResult.isCached = true;
+    return cachedResult;
+  }
+
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   let isLive = false;
 
@@ -74,8 +98,8 @@ export async function fetchDemandForecast(forecastRows) {
 
   // 1. Sandbox simulation mode fallback
   if (!isLive) {
-    // Introduce latency to demonstrate premium dashboard loaders
-    await new Promise(resolve => setTimeout(resolve, 1800));
+    // Introduce minimal latency (300ms) to allow loader animations to render briefly for UX feedback
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     const simulatedPredictions = forecastRows.map(row => {
       const calendar = calculateCalendarFeatures(row.date) || {};
@@ -109,7 +133,13 @@ export async function fetchDemandForecast(forecastRows) {
       };
     });
 
-    return normalizePredictions({ predictions: simulatedPredictions }, forecastRows);
+    const result = normalizePredictions({ predictions: simulatedPredictions }, forecastRows);
+    
+    // Store in cache
+    forecastCache.set(cacheKey, result);
+    const resultCopy = JSON.parse(JSON.stringify(result));
+    resultCopy.isCached = false;
+    return resultCopy;
   }
 
   // 2. Build sequence starting at 2024-01-31 to satisfy the SARIMAX model's strict autoregression constraints
@@ -180,6 +210,12 @@ export async function fetchDemandForecast(forecastRows) {
   const normalized = normalizePredictions(data, apiForecastRows);
   
   // Filter output to return ONLY the user's originally requested dates
-  return normalized.filter(row => requestedDates.has(row.date));
+  const result = normalized.filter(row => requestedDates.has(row.date));
+  
+  // Store in cache
+  forecastCache.set(cacheKey, result);
+  const resultCopy = JSON.parse(JSON.stringify(result));
+  resultCopy.isCached = false;
+  return resultCopy;
 }
 export default fetchDemandForecast;
